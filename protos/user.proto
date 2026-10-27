@@ -1,0 +1,30 @@
+syntax="proto3";
+
+service UserService {
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+    rpc LoginUser(LoginUserRequest) returns (LoginUserResponse);
+}
+    
+message CreateUserRequest {
+    string email=1;
+    string password=2;
+    string name=3;
+}
+
+message CreateUserResponse {
+    string id=1;
+    string email=2;
+    bool success=3;
+}
+
+message LoginUserRequest {
+    string email=1;
+    string password=2;
+}
+
+message LoginUserResponse {
+    string id=1;
+    string email=2;
+    string name=3;
+    bool success=4;
+}

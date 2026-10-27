@@ -1,0 +1,79 @@
+  services:
+    postgres_db:
+      image: postgres:15
+      environment:
+        POSTGRES_USER: user
+        POSTGRES_PASSWORD: password
+        POSTGRES_DB: microservices_db
+      ports:
+        - "5432:5432"
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U user -d microservices_db"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
+
+    redis_broker:
+      image: redis:7-alpine
+      ports:
+        - "6379:6379"
+
+    # Mikroservisler
+    auth_service:
+      build: ./auth_services
+      command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+      ports:
+        - "8000:8000"
+      depends_on:
+        - postgres_db
+      env_file:
+        - .env 
+      environment:
+        - DATABASE_URL=postgresql://user:password@postgres_db:5432/microservices_db
+        - REDIS_URL=redis://redis_broker:6379/0
+      volumes:
+        - ./auth_services:/app
+        - ./protos:/protos
+
+    user_service:
+      build: ./user_services
+      command: npm run dev
+      ports:
+        - "3000:3000"
+        - "50051:50051"
+      depends_on:
+        postgres_db:
+          condition: service_healthy
+      environment:
+        - DATABASE_URL=postgresql://user:password@postgres_db:5432/microservices_db
+        - REDIS_URL=redis://redis_broker:6379/0
+      volumes:
+        - ./user_services:/app
+        - /app/node_modules
+        - ./protos:/protos
+
+    notification_service:
+      build: ./notifications_services
+      command: celery -A tasks worker --loglevel=info
+      depends_on:
+        - redis_broker
+      environment:
+        - REDIS_URL=redis://redis_broker:6379/0
+      volumes:
+        - ./notifications_services:/app
+
+    logging_service:
+      build: ./logging_services
+      command: node services.js
+      depends_on:
+        - redis_broker
+      environment:
+        - REDIS_URL=redis://redis_broker:6379/1
+      volumes:
+        - ./logging_services:/app
+        - /app/node_modules
+
+  volumes:
+    postgres_data:

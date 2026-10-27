@@ -1,0 +1,13 @@
+{
+  "name": "logging-service",
+  "version": "1.0.0",
+  "description": "Merkezi Log Dinleme Servisi",
+  "main": "worker.js",
+  "scripts": {
+    "start": "node worker.js"
+  },
+  "dependencies": {
+    "bullmq": "^5.8.1",
+    "ioredis": "^5.4.1"
+  }
+}
